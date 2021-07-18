@@ -342,6 +342,9 @@ summary(all$Functional)
 # VinylSd	Vinyl Siding
 # Wd Sdng	Wood Siding
 # WdShing	Wood Shingles
+summary(factor(all$Exterior1st)) # NA -> price랑 관계봐야함
+all$OverallQual[is.na(all$Exterior1st)] # 5라서 최빈값 대체
+all$Exterior1st <- as.factor(all$Exterior1st)
 
 # 26번 Exterior2nd: Exterior covering on house (if more than one material)
 # AsbShng	Asbestos Shingles
@@ -361,17 +364,19 @@ summary(all$Functional)
 # VinylSd	Vinyl Siding
 # Wd Sdng	Wood Siding
 # WdShing	Wood Shingles
+summary(factor(all$Exterior2nd)) # NA -> price랑 관계봐야함
+all$OverallQual[is.na(all$Exterior2nd)] # 5라서 최빈값 대체
+all$Exterior2nd <- as.factor(all$Exterior2nd)
 
-# 27번 BsmtFinSF1: Type 1 finished square feet
-# 28번 BsmtFinSF2: Type 2 finished square feet
-# 29번 BsmtUnfSF: Unfinished square feet of basement area
-# 30번 TotalBsmtSF: Total square feet of basement area
 # 31번 Electrical: Electrical system
 # SBrkr	Standard Circuit Breakers & Romex
 # FuseA	Fuse Box over 60 AMP and all Romex wiring (Average)	
 # FuseF	60 AMP Fuse Box and mostly Romex wiring (Fair)
 # FuseP	60 AMP Fuse Box and mostly knob & tube wiring (poor)
 # Mix	Mixed
+summary(factor(all$Electrical)) # NA -> price랑 관계봐야함
+all$OverallQual[is.na(all$Electrical)] # 5라서 최빈값 대체
+all$Electrical <- as.factor(all$Electrical)
  
 # 32번 KitchenQual: Kitchen quality
 # Ex	Excellent
@@ -379,10 +384,10 @@ summary(all$Functional)
 # TA	Typical/Average
 # Fa	Fair
 # Po	Poor
+summary(factor(all$KitchenQual)) # NA -> price랑 관계봐야함
+all$OverallQual[is.na(all$KitchenQual)] # 5라서 median
+all$Electrical <- as.integer(revalue(all$Electrical,Qualities))
 
-# 33번 GarageCars: Size of garage in car capacity
-
-# 34번 GarageArea: Size of garage in square feet
 
 # 35번 SaleType: Type of sale
 # WD 	Warranty Deed - Conventional
@@ -395,6 +400,9 @@ summary(all$Functional)
 # ConLI	Contract Low Interest
 # ConLD	Contract Low Down
 # Oth	Other
+summary(factor(all$SaleType)) # NA -> price랑 관계봐야함
+all$OverallQual[is.na(all$SaleType)] # 5라서 최빈값
+all$SaleType <- as.factor(all$SaleType)
 
 
 # 36번 MasVnrType: Masonry veneer type
@@ -403,28 +411,12 @@ summary(all$Functional)
 # CBlock	Cinder Block
 # None	None
 # Stone	Stone
+summary(factor(all$MasVnrType)) # NA -> price랑 관계봐야함
+all$SalePrice[is.na(all$MasVnrType)] # 최빈값 대체
+all$MasVnrType <- as.factor(all$MasVnrType)
 
-# 37번 Street
-# 38번 LotShape
-# 39번 LandContour
-# 40번 LotConfig
-# 41번 LandSlope
-# 42번 Condition1
-# 43번 Condition2
-# 44번 BldgType
-# 45번 HouseStyle
-# 46번 RoofStyle
-# 47번 RoofMatl
-# 48번 ExterQual
-# 49번 ExterCond
-# 50번 Foundation
-# 51번 Heating
-# 52번 HeatingQC
-# 53번 CentralAir
-# 54번 PavedDrive
-# 55번 SaleCondition
 
-# 56번 MSZoning: Identifies the general zoning classification of the sale.
+# 37번 MSZoning: Identifies the general zoning classification of the sale.
 # A	Agriculture
 # C	Commercial
 # FV	Floating Village Residential
@@ -433,7 +425,18 @@ summary(all$Functional)
 # RL	Residential Low Density
 # RP	Residential Low Density Park 
 # RM	Residential Medium Density
+summary(factor(all$MSZoning)) # NA -> price랑 관계봐야함
+all$OverallQual[is.na(all$MSZoning)] # 최빈값 대체
+all$MSZoning <- as.factor(all$MSZoning)
 
+# 그외 N/A없는 character변수 -> factor화
+nominalVars2 <- which(sapply(all, is.character))
+all[,nominalVars2] %>% names() # 22개
+library(purrr)
+all2<-all
+all2[,nominalVars2]<- map_df(all2[,nominalVars2], as.factor)
+all2
+str(all2)
 
 
 
@@ -441,10 +444,8 @@ summary(all$Functional)
 
 
 
-str(all)
-
-
-recipe(SalePrice~., data=all) %>% 
+summary(all2)
+recipe(SalePrice~., data=all2) %>% 
   step_impute_median(all_numeric_predictors(),-Id) %>%
   # step_center(all_numeric_predictors(),-Id) %>% 
   # step_scale(all_numeric_predictors(),-Id) %>% 
@@ -477,15 +478,17 @@ sapply(names(full), function(n) { sum(is.na(full[, n])) }) %>% sort(decreasing=T
 # colSums(is.na(test_rm_na))
 
 
-trctrl1 <- trainControl(method="cv")
+trctrl1 <- trainControl(method="repeatedcv", repeats=5)
 
 set.seed(2106)
 
 rpart1 <- train(SalePrice~., data=train0[2:length(train0)], method="rpart", trControl=trctrl1)
 print(rpart1)
+# cp          RMSE      Rsquared   MAE     
+# 0.06327058  56025.05  0.5083356  39077.14
 rpart1$finalModel
 
-rpart1.pred <- predict(rpart1, newdata=test0[2:length(test0)], type="raw")
+rpart1.pred <- predict(rpart1, newdata=test0[2:length(test0)])
 
 result.rpart1 <- bind_cols(Id=test0$Id, SalePrice=rpart1.pred)
 str(result.rpart1)
@@ -494,8 +497,10 @@ write.csv(result.rpart1, "./data/housePrice_submission1.csv", row.names = FALSE)
 result.rpart1$SalePrice %>% summary()
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 137587  137587  198841  184600  198841  305752 
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 132299  132299  195146  180983  195146  306491 
 
-
+result.rpart1$SalePrice %>% head()
 
 
 
