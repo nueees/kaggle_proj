@@ -1,5 +1,5 @@
 #setwd("C:/Users/Administrator/Documents/R/Kaggle/kaggle_proj/002_HousePrice")
-library(knitr);library(ggplot2);library(plyr);library(dplyr);library(corrplot);library(caret);library(gridExtra);library(scales);library(Rmisc);library(ggrepel);library(randomForest);library(psych);library(xgboost);
+library(knitr);library(ggplot2);library(plyr);library(dplyr);library(corrplot);library(caret);library(gridExtra);library(scales);library(Rmisc);library(ggrepel);library(randomForest);library(psych);library(xgboost);library(recipes);
 read.csv("./data/train.csv", stringsAsFactors=F) %>%  mutate(index = "train")-> train 
 read.csv("./data/test.csv", stringsAsFactors=F) %>%  mutate(index = "test") -> x_test
 str(train) #1460 obs. of  81
@@ -479,8 +479,11 @@ sapply(names(full), function(n) { sum(is.na(full[, n])) }) %>% sort(decreasing=T
 
 
 trctrl1 <- trainControl(method="repeatedcv", repeats=5)
-
+trctrl2 <- trainControl(method = 'cv', number = 5)
 set.seed(2106)
+
+
+########rpart
 
 rpart1 <- train(SalePrice~., data=train0[2:length(train0)], method="rpart", trControl=trctrl1)
 print(rpart1)
@@ -527,28 +530,43 @@ result.gbm1$SalePrice %>% head()
 ########RF
 
 
-rf1 <- train(SalePrice~., data=train0[2:length(train0)], method="rf", trControl=trctrl1)
+rf1 <- train(SalePrice~., data=train0[2:length(train0)], method="rf", trControl=trctrl2)
 print(rf1)
-# cp          RMSE      Rsquared   MAE     
-# 0.06327058  56025.05  0.5083356  39077.14
+# mtry  RMSE      Rsquared   MAE     
+# 2     45676.73  0.7971227  28618.92
+# 113   30748.95  0.8626380  17684.20
+# 224   31235.90  0.8559367  18081.10
 rf1$finalModel
 
 rf1.pred <- predict(rf1, newdata=test0[2:length(test0)])
 
 result.rf1 <- bind_cols(Id=test0$Id, SalePrice=rf1.pred)
 str(result.rf1)
-write.csv(result.rf1, "./data/housePrice_submission2.csv", row.names = FALSE)
-# RMSLE 0.31155 /  12831등
+write.csv(result.rf1, "./data/housePrice_submission3.csv", row.names = FALSE)
+# RMSLE 0.14764 /  8374등
 result.rf1$SalePrice %>% summary()
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 137587  137587  198841  184600  198841  305752 
-# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 132299  132299  195146  180983  195146  306491 
+# 62692  131169  159248  179547  209371  493185 
 
 result.rf1$SalePrice %>% head()
 
 
 
+
+#########glm
+cv.glmnet(x=as.data.frame(train0[2:(length(train0)-1)]), y=train0$SalePrice)
+library(glmnet)
+lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001, 0.01, by = 0.001))
+
+lasso1 <- train(x=as.data.frame(train0[2:(length(train0)-1)]), y=train0$SalePrice, method ='glmnet', trControl= trctrl2, tuneGrid = lassoGrid)
+# waring.. 못찾겠어
+lasso1$bestTune
+min(lasso1$results$RMSE)
+lassoVarImp <- varImp(lasso1, scale = F)
+lassoImportance <- lassoVarImp$importance
+
+varsSelected <- length(which(lassoImportance$Overall!=0))
+varsNotSelected <- length(which(lassoImportance$Overall==0))
 
 
 
