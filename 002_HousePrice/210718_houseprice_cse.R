@@ -496,11 +496,56 @@ write.csv(result.rpart1, "./data/housePrice_submission1.csv", row.names = FALSE)
 # RMSLE 0.31155 /  12831등
 result.rpart1$SalePrice %>% summary()
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 132299  132299  195146  180983  195146  306491 
+
+result.rpart1$SalePrice %>% head()
+
+
+########GBM
+
+
+gbm1 <- train(SalePrice~., data=train0[2:length(train0)], method="gbm", trControl=trctrl1)
+print(gbm1)
+# interaction.depth  n.trees  RMSE      Rsquared   MAE     
+# 3                  150      28528.42  0.8688575  17286.21
+gbm1$finalModel
+
+gbm1.pred <- predict(gbm1, newdata=test0[2:length(test0)])
+
+result.gbm1 <- bind_cols(Id=test0$Id, SalePrice=gbm1.pred)
+str(result.gbm1)
+write.csv(result.gbm1, "./data/housePrice_submission2.csv", row.names = FALSE)
+# RMSLE 0.14764 /  8357등
+result.gbm1$SalePrice %>% summary()
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 49529  127953  156469  179131  207695  521714 
+
+result.gbm1$SalePrice %>% head()
+
+
+
+########RF
+
+
+rf1 <- train(SalePrice~., data=train0[2:length(train0)], method="rf", trControl=trctrl1)
+print(rf1)
+# cp          RMSE      Rsquared   MAE     
+# 0.06327058  56025.05  0.5083356  39077.14
+rf1$finalModel
+
+rf1.pred <- predict(rf1, newdata=test0[2:length(test0)])
+
+result.rf1 <- bind_cols(Id=test0$Id, SalePrice=rf1.pred)
+str(result.rf1)
+write.csv(result.rf1, "./data/housePrice_submission2.csv", row.names = FALSE)
+# RMSLE 0.31155 /  12831등
+result.rf1$SalePrice %>% summary()
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 137587  137587  198841  184600  198841  305752 
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 # 132299  132299  195146  180983  195146  306491 
 
-result.rpart1$SalePrice %>% head()
+result.rf1$SalePrice %>% head()
 
 
 
