@@ -444,6 +444,29 @@ str(all2)
 
 
 
+#### 상관관계 재확인
+
+numericVars2 <- which(sapply(all, is.numeric))
+all_numVar2 <- all[,numericVars2]
+str(all_numVar2) #48개-1개(Id)
+cor_all_numVar2 <- cor(all_numVar2[,2:48], use="pairwise.complete.obs") #상관계수 계산된 애들만 확인
+cor_all_numVar2_desc <- as.matrix(cor_all_numVar2['SalePrice',] %>% sort(decreasing=T))
+
+cor_all_numVar2_desc[cor_all_numVar2_desc[,1]>0.5,] %>% names() -> cor_numVar2_desc_high 
+cor_all_numVar2[cor_numVar2_desc_high,cor_numVar2_desc_high] %>% corrplot(tl.col="black")
+corrplot.mixed(cor_all_numVar2[cor_numVar2_desc_high,cor_numVar2_desc_high],
+               tl.col="black",
+               tl.pos="lt")
+# "SalePrice"~ "OverallQual", "GrLivArea", "GarageCars", "GarageArea", "TotalBsmtSF", "X1stFlrSF", "FullBath", "TotRmsAbvGrd", "YearBuilt", "YearRemodAdd" 상관관계 높은 순
+
+
+
+
+
+
+
+
+
 summary(all2)
 recipe(SalePrice~., data=all2) %>% 
   step_impute_median(all_numeric_predictors(),-Id) %>%
@@ -552,21 +575,19 @@ result.rf1$SalePrice %>% head()
 
 
 
-
 #########glm
-cv.glmnet(x=as.data.frame(train0[2:(length(train0)-1)]), y=train0$SalePrice)
-library(glmnet)
-lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001, 0.01, by = 0.001))
-
-lasso1 <- train(x=as.data.frame(train0[2:(length(train0)-1)]), y=train0$SalePrice, method ='glmnet', trControl= trctrl2, tuneGrid = lassoGrid)
-# waring.. 못찾겠어
-lasso1$bestTune
-min(lasso1$results$RMSE)
-lassoVarImp <- varImp(lasso1, scale = F)
-lassoImportance <- lassoVarImp$importance
-
-varsSelected <- length(which(lassoImportance$Overall!=0))
-varsNotSelected <- length(which(lassoImportance$Overall==0))
+# #alpha=1 lasso로 할거임
+# lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001, 0.1, by = 0.0001))
+# 
+# lasso1 <- train(x=as.data.frame(train0[2:(length(train0)-1)]), y=train0$SalePrice, method ='glmnet', trControl= trctrl2, tuneGrid = lassoGrid)
+# # warning.. 못찾겠어
+# lasso1$bestTune
+# min(lasso1$results$RMSE)
+# lassoVarImp <- varImp(lasso1, scale = F)
+# lassoImportance <- lassoVarImp$importance
+# 
+# varsSelected <- length(which(lassoImportance$Overall!=0))
+# varsNotSelected <- length(which(lassoImportance$Overall==0))
 
 
 
