@@ -1,3 +1,9 @@
+# datafile
+train.csv
+test.csv
+# log files
+*/logs/*
+
 # History files
 .Rhistory
 .Rapp.history
